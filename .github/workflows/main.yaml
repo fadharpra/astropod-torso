@@ -16,6 +16,8 @@ jobs:
 
     env:
       BUCKET_NAME: gcr-website-bucket
+      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -35,6 +37,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '22'
+          cache: 'pnpm'
 
       - name: Install pnpm
         run: npm install -g pnpm
@@ -43,10 +46,7 @@ jobs:
         run: pnpm install
 
       - name: Seed DB with Turso
-        run: |
-          TURSO_DATABASE_URL=${{ secrets.TURSO_DATABASE_URL }} \
-          TURSO_AUTH_TOKEN=${{ secrets.TURSO_AUTH_TOKEN }} \
-          pnpm run seed
+        run: pnpm run seed
 
       - name: Build Astro
         run: pnpm run build
@@ -62,5 +62,11 @@ jobs:
 
       - name: Fix JS MIME types
         run: |
-          gsutil -m setmeta -h "Content-Type:application/javascript" \
-            $(gsutil ls gs://${{ env.BUCKET_NAME }}/_astro/*.js || true)
+          echo "⏳ Waiting for files to sync..."
+          sleep 10
+          JS_FILES=$(gsutil ls gs://${{ env.BUCKET_NAME }}/_astro/*.js || true)
+          if [ -n "$JS_FILES" ]; then
+            gsutil -m setmeta -h "Content-Type:application/javascript" $JS_FILES
+          else
+            echo "⚠️ No JS files found to set MIME type."
+          fi
