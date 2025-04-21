@@ -1,3 +1,12 @@
+# VSCode config (kalau gak pengen dishare ke repo)
+.vscode/
+
+# Lockfile backup (optional, kalo pakai tsconfig.json.bak)
+*.bak
+
+# Astro DB local file (if exists, just in case)
+db/astro.sqlite
+
 # build output
 .vercel/
 dist/

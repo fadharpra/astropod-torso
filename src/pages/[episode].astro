@@ -1,15 +1,5 @@
 ---
 import { getEntry } from 'astro:content';
-import {
-  db,
-  eq,
-  Episode as DbEpisode,
-  HostOrGuest,
-  Person,
-  Sponsor,
-  SponsorForEpisode
-} from 'astro:db';
-
 import { Schema } from 'astro-seo-schema';
 
 import FormattedDate from '../components/FormattedDate';
@@ -21,29 +11,31 @@ import UFOIllustration from '../components/illustrations/UFOIllustration.astro';
 import Layout from '../layouts/Layout.astro';
 import { getAllEpisodes, getShowInfo } from '../lib/rss';
 
+import peoplePerEpisode from '../../db/data/people-per-episode';
+import people from '../../db/data/people';
+import sponsorsPerEpisode from '../../db/data/sponsors-per-episode';
+import sponsorList from '../../db/data/sponsors';
+
 const show = await getShowInfo();
 
 export async function getStaticPaths() {
   const allEpisodes = await getAllEpisodes();
 
-  return allEpisodes.flatMap((episode) => {
-    return [
-      {
-        params: { episode: episode.episodeNumber },
-        props: { episode }
-      },
-      {
-        params: { episode: episode.episodeSlug },
-        props: { episode }
-      }
-    ];
-  });
+  return allEpisodes.flatMap((episode) => [
+    {
+      params: { episode: episode.episodeNumber },
+      props: { episode }
+    },
+    {
+      params: { episode: episode.episodeSlug },
+      props: { episode }
+    }
+  ]);
 }
 
 const { episode } = Astro.props;
 
 let Transcript;
-
 if (episode.episodeNumber && episode.episodeNumber !== 'Bonus') {
   Transcript = await getEntry('transcripts', episode.episodeNumber);
   if (Transcript) {
@@ -54,32 +46,31 @@ if (episode.episodeNumber && episode.episodeNumber !== 'Bonus') {
 
 const canonicalURL = new URL(`/${episode.episodeSlug}`, Astro.url);
 
-const hostsAndGuests = await db
-  .select({
-    id: Person.id,
-    img: Person.img,
-    isHost: HostOrGuest.isHost,
-    name: Person.name
-  })
-  .from(HostOrGuest)
-  .innerJoin(DbEpisode, eq(HostOrGuest.episodeSlug, DbEpisode.episodeSlug))
-  .innerJoin(Person, eq(HostOrGuest.personId, Person.id))
-  .where(eq(DbEpisode.episodeSlug, episode.episodeSlug));
+const hostsAndGuests =
+  (peoplePerEpisode[episode.episodeSlug] || []).flatMap(({ id, host }) => {
+    const person = people.find((p) => p.id === id);
+    return person
+      ? [{
+          id: person.id,
+          name: person.name,
+          img: person.img ?? null,
+          isHost: host ?? false
+        }]
+      : [];
+  });
 
-const sponsors = await db
-  .select({
-    id: Sponsor.id,
-    img: Sponsor.img,
-    name: Sponsor.name,
-    url: Sponsor.url
-  })
-  .from(SponsorForEpisode)
-  .innerJoin(
-    DbEpisode,
-    eq(SponsorForEpisode.episodeSlug, DbEpisode.episodeSlug)
-  )
-  .innerJoin(Sponsor, eq(SponsorForEpisode.sponsorId, Sponsor.id))
-  .where(eq(DbEpisode.episodeSlug, episode.episodeSlug));
+const sponsors =
+  (sponsorsPerEpisode[episode.episodeSlug] || []).flatMap(({ id }) => {
+    const sponsor = sponsorList.find((s) => s.id === id);
+    return sponsor
+      ? [{
+          id: sponsor.id,
+          name: sponsor.name,
+          img: sponsor.img ?? null,
+          url: sponsor.url
+        }]
+      : [];
+  });
 
 const title = `${episode.title} - ${show.title} - Episode ${episode.episodeNumber}`;
 ---
@@ -111,27 +102,21 @@ const title = `${episode.title} - ${show.title} - Episode ${episode.episodeNumbe
       <div class="overflow-hidden break-words">
         <FormattedDate date={new Date(episode.published)} />
 
-        <h1
-          class="mb-4 text-2xl font-bold text-light-text-heading lg:mb-6 lg:text-5xl dark:text-white"
-        >
+        <h1 class="mb-4 text-2xl font-bold text-light-text-heading lg:mb-6 lg:text-5xl dark:text-white">
           {episode.episodeNumber}: {episode.title}
         </h1>
 
-        <p class="mb-8 lg:mb-12">
-          {episode.description}
-        </p>
+        <p class="mb-8 lg:mb-12">{episode.description}</p>
 
         <div class="mb-8 block lg:hidden">
           <FullPlayButton client:only="preact" episode={episode} />
         </div>
 
-        {
-          hostsAndGuests?.length ? (
-            <CreatorsAndGuests hostsAndGuests={hostsAndGuests} />
-          ) : undefined
-        }
+        {hostsAndGuests.length ? (
+          <CreatorsAndGuests hostsAndGuests={hostsAndGuests} />
+        ) : undefined}
 
-        {sponsors?.length ? <Sponsors sponsors={sponsors} /> : undefined}
+        {sponsors.length ? <Sponsors sponsors={sponsors} /> : undefined}
 
         <h3 class="section-heading-underlined mb-8 mt-16">Show Notes</h3>
 
@@ -141,37 +126,33 @@ const title = `${episode.title} - ${show.title} - Episode ${episode.episodeNumbe
           <Fragment set:html={episode.content} />
         </div>
 
-        <h3 class="section-heading-underlined mb-8 mt-16">
-          Episode Transcript
-        </h3>
+        <h3 class="section-heading-underlined mb-8 mt-16">Episode Transcript</h3>
 
-        {
-          Transcript ? (
-            <div class="mb-20">
-              <article class="transcript prose prose-neutral line-clamp-4 dark:prose-invert">
-                <Transcript />
-              </article>
+        {Transcript ? (
+          <div class="mb-20">
+            <article class="transcript prose prose-neutral line-clamp-4 dark:prose-invert">
+              <Transcript />
+            </article>
 
-              <button
-                class="btn mt-4"
-                type="button"
-                onclick="document.querySelector('.transcript').classList.remove('line-clamp-4'); this.classList.add('hidden');"
-              >
-                <span class="px-8 py-3">Show more</span>
-              </button>
+            <button
+              class="btn mt-4"
+              type="button"
+              onclick="document.querySelector('.transcript').classList.remove('line-clamp-4'); this.classList.add('hidden');"
+            >
+              <span class="px-8 py-3">Show more</span>
+            </button>
+          </div>
+        ) : (
+          <div class="flex flex-col items-center">
+            <div class="h-auto w-full max-w-80">
+              <UFOIllustration />
             </div>
-          ) : (
-            <div class="flex flex-col items-center">
-              <div class="h-auto w-full max-w-80">
-                <UFOIllustration />
-              </div>
 
-              <p class="py-10 text-lg font-bold text-light-text-heading dark:text-white">
-                No transcript available for this episode.
-              </p>
-            </div>
-          )
-        }
+            <p class="py-10 text-lg font-bold text-light-text-heading dark:text-white">
+              No transcript available for this episode.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   </div>
