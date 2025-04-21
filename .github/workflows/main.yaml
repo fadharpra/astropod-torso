@@ -11,13 +11,11 @@ jobs:
     name: Deploy Static Web to GCS
     runs-on: ubuntu-latest
     permissions:
-      contents: 'read'
-      id-token: 'write'
+      contents: read
+      id-token: write
 
     env:
       BUCKET_NAME: gcr-website-bucket
-      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -33,7 +31,7 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22'
@@ -46,27 +44,31 @@ jobs:
         run: pnpm install
 
       - name: Seed DB with Turso
-        run: pnpm run seed
+        run: |
+          TURSO_DATABASE_URL=${{ secrets.TURSO_DATABASE_URL }} \
+          TURSO_AUTH_TOKEN=${{ secrets.TURSO_AUTH_TOKEN }} \
+          pnpm run seed
 
       - name: Build Astro
         run: pnpm run build
 
-      - name: Clear bucket before upload
+      - name: Sleep to wait for file consistency
+        run: sleep 10
+
+      - name: Clear GCS bucket
         run: gsutil -m rm -r gs://${{ env.BUCKET_NAME }}/** || true
 
-      - name: Upload to GCS
+      - name: Upload files to GCS
         run: gsutil -m rsync -r -d -c dist/ gs://${{ env.BUCKET_NAME }}/
 
-      - name: Set Web Index
+      - name: Set Web Index & 404 page
         run: gsutil web set -m index.html -e 404.html gs://${{ env.BUCKET_NAME }}
 
       - name: Fix JS MIME types
         run: |
-          echo "⏳ Waiting for files to sync..."
-          sleep 10
-          JS_FILES=$(gsutil ls gs://${{ env.BUCKET_NAME }}/_astro/*.js || true)
-          if [ -n "$JS_FILES" ]; then
-            gsutil -m setmeta -h "Content-Type:application/javascript" $JS_FILES
+          js_files=$(gsutil ls gs://${{ env.BUCKET_NAME }}/_astro/*.js || true)
+          if [[ -n "$js_files" ]]; then
+            gsutil -m setmeta -h "Content-Type:application/javascript" $js_files
           else
-            echo "⚠️ No JS files found to set MIME type."
+            echo "No JS files found to update MIME type."
           fi
