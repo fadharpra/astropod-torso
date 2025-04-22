@@ -47,22 +47,24 @@ jobs:
           TURSO_DATABASE_URL=${{ secrets.TURSO_DATABASE_URL }} \
           TURSO_AUTH_TOKEN=${{ secrets.TURSO_AUTH_TOKEN }} \
           pnpm run seed
-
       - name: Build Astro
         run: pnpm run build
 
       - name: Sleep to wait for file consistency
-        run: sleep 10
+        run: sleep 20
 
       - name: Clear GCS bucket
         run: gsutil -m rm -r gs://${{ env.BUCKET_NAME }}/** || true
 
       - name: Upload files to GCS
-        run: gsutil -m rsync -r -d -c dist/ gs://${{ env.BUCKET_NAME }}/
+        run: gsutil -m rsync -r -d -c dist/client gs://${{ env.BUCKET_NAME }}/
 
       - name: Set Web Index & 404 page
         run: gsutil web set -m index.html -e 404.html gs://${{ env.BUCKET_NAME }}
 
+      - name: Sleep to wait for file consistency
+        run: sleep 20
+        
       - name: Fix JS MIME types
         run: |
           js_files=$(gsutil ls gs://${{ env.BUCKET_NAME }}/_astro/*.js || true)
