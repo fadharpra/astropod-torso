@@ -3,8 +3,7 @@ import starpodConfig from '../../starpod.config';
 
 const { hosts } = starpodConfig;
 
-// GCS public bucket for people images
-const GCS_BASE_URL = 'https://storage.googleapis.com/gcr-assets-fadharpra/people';
+const BUCKET = 'https://storage.googleapis.com/gcr-assets-fadharpra/people';
 ---
 
 <div
@@ -17,10 +16,10 @@ const GCS_BASE_URL = 'https://storage.googleapis.com/gcr-assets-fadharpra/people
       <div class="mb-4 flex items-center">
         <img
           class="mr-4 h-12 w-12 rounded-lg"
-          src={`${GCS_BASE_URL}/${host.img}`}
-          alt={host.name}
-          width="48"
-          height="48"
+          height={48}
+          src={`${BUCKET}/${host.img}`}
+          width={48}
+          alt=""
           loading="lazy"
           decoding="async"
         />
