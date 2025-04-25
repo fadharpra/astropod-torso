@@ -22,7 +22,8 @@ export default [
   {
     id: 'chuckcarpenter',
     name: 'Charles William Carpenter III',
-    img: 'chuckcarpenter.jpg'
+    img: 'https://storage.googleapis.com/gcr-assets-fadharpra/people/chuckcarpenter.jpg'
+    //'chuckcarpenter.jpg'
   },
   {
     id: 'dabeeeenster',
@@ -165,7 +166,8 @@ export default [
   {
     id: 'robbiethewagner',
     name: 'RobbieTheWagner',
-    img: 'robbiethewagner.jpg'
+    img: 'https://storage.googleapis.com/gcr-assets-fadharpra/people/robbiethewagner.jpg'
+    //'robbiethewagner.jpg'
   },
   {
     id: 'robbyrussell',
