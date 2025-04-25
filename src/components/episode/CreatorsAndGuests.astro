@@ -1,7 +1,4 @@
 ---
-import type { ImageMetadata } from 'astro';
-import { Image } from 'astro:assets';
-
 export interface Props {
   hostsAndGuests: Array<{
     id: string;
@@ -13,9 +10,10 @@ export interface Props {
 
 const { hostsAndGuests } = Astro.props;
 
-const images = import.meta.glob<{ default: ImageMetadata }>(
-  '/src/img/people/*.{jpeg,jpg,png}'
-);
+// URL prefix dari GCS public bucket
+const GCS_IMAGE_BASE = 'https://storage.googleapis.com/gcr-assets-fadharpra/people/';
+const DEFAULT_LIGHT_AVATAR = 'https://storage.googleapis.com/gcr-assets-fadharpra/people/avatar-light.png';
+const DEFAULT_DARK_AVATAR = 'https://storage.googleapis.com/gcr-assets-fadharpra/people/avatar-dark.png';
 
 const priorityNames = ['RobbieTheWagner', 'Charles William Carpenter III'];
 ---
@@ -42,29 +40,32 @@ const priorityNames = ['RobbieTheWagner', 'Charles William Carpenter III'];
       })
       .map((person) => (
         <div class="flex items-center">
-          {person.img && images[`/src/img/people/${person.img}`] ? (
-            <Image
+          {person.img ? (
+            <img
               class="mr-4 h-12 w-12 rounded-lg"
-              height={48}
-              src={images[`/src/img/people/${person.img}`].default}
-              alt=""
-              width={48}
+              height="48"
+              width="48"
+              src={`${GCS_IMAGE_BASE}${person.img}`}
+              alt={person.name}
+              loading="lazy"
             />
           ) : (
             <>
-              <Image
+              <img
                 class="mr-4 h-12 w-12 rounded-lg dark:hidden"
-                height={48}
-                src={images['/src/img/people/avatar-light.png']?.default}
-                alt=""
-                width={48}
+                height="48"
+                width="48"
+                src={DEFAULT_LIGHT_AVATAR}
+                alt={person.name}
+                loading="lazy"
               />
-              <Image
+              <img
                 class="mr-4 hidden h-12 w-12 rounded-lg dark:block"
-                height={48}
-                src={images['/src/img/people/avatar-dark.png']?.default}
-                alt=""
-                width={48}
+                height="48"
+                width="48"
+                src={DEFAULT_DARK_AVATAR}
+                alt={person.name}
+                loading="lazy"
               />
             </>
           )}
@@ -73,4 +74,3 @@ const priorityNames = ['RobbieTheWagner', 'Charles William Carpenter III'];
       ))
   }
 </div>
-
