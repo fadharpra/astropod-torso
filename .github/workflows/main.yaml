@@ -15,7 +15,7 @@ jobs:
       id-token: write
 
     env:
-      BUCKET_NAME: gcr-website-bucket
+      BUCKET_NAME: nexus_demo
 
     steps:
       - name: Checkout repository
