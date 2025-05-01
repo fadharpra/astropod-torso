@@ -22,7 +22,7 @@ export default [
   {
     id: 'chuckcarpenter',
     name: 'Charles William Carpenter III',
-    img: 'https://storage.googleapis.com/img-assets/people/chuckcarpenter.jpg'
+    img: 'https://storage.googleapis.com/nexus_demo/img-assets/chuckcarpenter.jpg'
     //'chuckcarpenter.jpg'
   },
   {
@@ -166,7 +166,7 @@ export default [
   {
     id: 'robbiethewagner',
     name: 'RobbieTheWagner',
-    img: 'https://storage.googleapis.com/img-assets/people/robbiethewagner.jpg'
+    img: 'https://storage.googleapis.com/nexus_demo/img-assets/robbiethewagner.jpg'
     //'robbiethewagner.jpg'
   },
   {
